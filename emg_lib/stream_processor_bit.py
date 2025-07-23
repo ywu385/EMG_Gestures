@@ -3,7 +3,7 @@ import time
 from typing import Generator, List, Tuple
 from scipy import signal
 import os
-from processors import *
+from .processors import *
 
 ######################################################## Streamer object ######################################################################
 import csv
@@ -35,16 +35,23 @@ class EMGPipeline:
         return result
     
 class BitaStreamer:
-    def __init__(self, device, sampling_rate=1000, acqChannels=[0, 1, 2, 3], nSamples=10):
+    def __init__(self, device, sampling_rate=1000, acqChannels=[0, 1, 2, 3], nSamples=50, auto_start=True):
         """
         Device is preconfigured after Bitalino is instantiated.
-        (e.g. device = BITalino())
+        If auto_start=True, immediately starts acquisition to prevent disconnection.
         """
         self.device = device
         self.sampling_rate = sampling_rate
         self.channels = acqChannels
         self.processor = EMGPipeline()
         self.nSamples = nSamples
+        
+        # Start streaming immediately to keep connection alive
+        if auto_start:
+            self.device.start(self.sampling_rate, self.channels)
+            self.is_started = True
+        else:
+            self.is_started = False
         
     def add_pipeline(self, pipeline):
         self.processor = pipeline
@@ -87,7 +94,7 @@ class BitaStreamer:
     def stream_processed(self, duration_seconds=10000):
         start = time.time()
         end = time.time()
-        self.device.start(self.sampling_rate, self.channels)
+        # self.device.start(self.sampling_rate, self.channels)
         try:
             while (end - start) < duration_seconds:
                 samples = self.device.read(self.nSamples)
